@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉宜智慧盯岗系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .railway-gradient {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        .alert-animation {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .map-container {
+            height: 300px;
+            position: relative;
+        }
+        .accuracy-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 100, 255, 0.1);
+            border: 1px solid rgba(0, 100, 255, 0.3);
+            transform: translate(-50%, -50%);
+        }
+        .locate-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            background: white;
+            padding: 8px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #2563eb;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .locate-btn:hover {
+            background: #eff6ff;
+            transform: scale(1.05);
+        }
+        .scale-control {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #333;
+        }
+        .distance-info {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .distance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .distance-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .distance-label {
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        .progress-bar-container {
+            height: 0.75rem;
+            background: #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-top: 1.5rem;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.5s ease;
+        }
+        .critical-distance {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .distance-status-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+            padding: 0.5rem;
+            background: #f1f5f9;
+            border-radius: 0.5rem;
+        }
+        .distance-status {
+            text-align: center;
+            padding: 0.5rem;
+            flex: 1;
+        }
+        .distance-status-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .distance-status-label {
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+        .status-active {
+            background: #dbeafe;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-critical {
+            background: #fee2e2;
+        }
+        .status-warning {
+            background: #fef3c7;
+        }
+        .beidou-high {
+            color: #10b981;
+        }
+        .beidou-low {
+            color: #9ca3af;
+        }
+        .accuracy-warning {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .lane-level {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+        .api-status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #333;
+        }
+        .api-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .api-active {
+            background-color: #10b981;
+        }
+        .api-inactive {
+            background-color: #9ca3af;
+        }
+        .api-status-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .distance-log {
+            background: #f0f9ff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .distance-log-item {
+            padding: 4px 0;
+            border-bottom: 1px dashed #dbeafe;
+        }
+        .log-coordinates {
+            font-family: monospace;
+            background: #e0f2fe;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .api-coordinates {
+            font-family: monospace;
+            font-weight: bold;
+            color: #1d4ed8;
+        }
+        .distance-change {
+            color: #0f766e;
+            font-weight: bold;
+        }
+        .position-quality {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .quality-high {
+            background-color: #10b981;
+        }
+        .quality-medium {
+            background-color: #f59e0b;
+        }
+        .quality-low {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 初始选择界面 -->
+        <div id="selection-panel" class="max-w-md mx-auto bg-white rounded-xl shadow-xl overflow-hidden">
+            <div class="railway-gradient py-6 px-6 text-white text-center">
+                <h1 class="text-3xl font-bold">
+                    <i class="fas fa-train mr-2"></i>汉宜智慧盯岗系统
+                </h1>
+                <p class="mt-2 opacity-90">高铁精准对标定位系统</p>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- 线路选择 -->
+                <div class="space-y-2">
+                    <label class="block text-gray-700 font-medium">线路选择</label>
+                    <select id="line-select" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>请选择线路</option>
+                        <option value="K1">K1线</option>
+                        <option value="K2">K2线</option>
+                    </select>
+                </div>
+                <!-- 车型选择 -->
+                <div class="space-y-2">
+                    <label class="block text-gray-700 font-medium">车型选择</label>
+                    <select id="train-model" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>请选择车型</option>
+                        <option value="CRH2A">CRH2A型动车组</option>
+                        <option value="CRH2B">CRH2B型动车组</option>
+                        <option value="CRH380AL">CRH380AL型动车组</option>
+                        <option value="CR400AF">CR400AF型复兴号</option>
+                    </select>
+                </div>
+                <!-- 股道选择 -->
+                <div class="space-y-2">
+                    <label class="block text-gray-700 font-medium">股道选择</label>
+                    <select id="track" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>请选择股道</option>
+                        <optgroup label="整备线">
+                            <option value="整1">整备1线</option>
+                            <option value="整2">整备2线</option>
+                            <option value="整3">整备3线</option>
+                            <option value="整4">整备4线</option>
+                            <option value="整5">整备5线</option>
+                            <option value="整6">整备6线</option>
+                        </optgroup>
+                        <optgroup label="存车线">
+                            <option value="存1">存车1线</option>
+                            <option value="存2">存车2线</option>
+                        </optgroup>
+                        <optgroup label="动车线">
+                            <option value="动1">动车1线</option>
+                            <option value="动2">动车2线</option>
+                            <option value="动3">动车3线</option>
+                            <option value="动4">动车4线</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <!-- 位置选择 -->
+                <div class="space-y-2">
+                    <label class="block text-gray-700 font-medium">位置选择</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="position" value="东" class="h-5 w-5 text-blue-600">
+                            <span class="ml-2 text-gray-700">东侧</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="position" value="西" class="h-5 w-5 text-blue-600">
+                            <span class="ml-2 text-gray-700">西侧</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- 地图容器 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-gray-700 font-medium">当前位置定位</label>
+                        <div id="initial-gps-status" class="text-sm">
+                            <i class="fas fa-info-circle mr-1"></i>定位初始化中...
+                        </div>
+                    </div>
+                    <div class="relative rounded-lg border border-gray-200">
+                        <div id="map-container-selection" class="map-container"></div>
+                        <div id="api-status-selection" class="api-status">
+                            <div>API状态</div>
+                            <div class="api-status-container">
+                                <div class="api-indicator api-active" title="API1"></div>
+                                <div class="api-indicator api-inactive" title="API2"></div>
+                                <div class="api-indicator api-inactive" title="API3"></div>
+                                <div class="api-indicator api-inactive" title="API4"></div>
+                                <div class="api-indicator api-inactive" title="API5"></div>
+                            </div>
+                        </div>
+                        <div id="locate-btn-selection" class="locate-btn">
+                            <i class="fas fa-location-arrow"></i>
+                        </div>
+                        <div id="scale-selection" class="scale-control">比例尺</div>
+                    </div>
+                </div>
+                <!-- 开始对标按钮 -->
+                <button id="start-btn" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold transition">
+                    <i class="fas fa-satellite-dish mr-2"></i>开始对标
+                </button>
+            </div>
+        </div>
+        <!-- 对标结果界面 -->
+        <div id="result-panel" class="max-w-md mx-auto bg-white rounded-xl shadow-xl overflow-hidden hidden">
+            <div class="railway-gradient py-6 px-6 text-white text-center">
+                <h1 class="text-3xl font-bold">
+                    <i class="fas fa-train mr-2"></i>对标进行中
+                </h1>
+                <p class="mt-1 text-sm opacity-80">车道级高精度定位系统</p>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- 基本信息显示 -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-500">线路</p>
+                            <p id="display-line" class="font-bold">--</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">车型</p>
+                            <p id="display-model" class="font-bold">--</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">股道</p>
+                            <p id="display-track" class="font-bold">--</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">位置</p>
+                            <p id="display-position" class="font-bold">--</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">定位状态</p>
+                            <p id="gps-status" class="font-bold text-green-600">
+                                <i class="fas fa-check-circle mr-1"></i>已定位
+                                <span id="beidou-status"> | <span class="beidou-high">北斗高精定位</span></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 距离信息显示 -->
+                <div class="distance-info">
+                    <div class="text-center">
+                        <p class="text-gray-500">剩余距离</p>
+                        <p id="distance" class="text-5xl font-bold text-blue-600 my-4">-- 米</p>
+                        
+                        <!-- 距离状态提示 -->
+                        <div id="distance-status" class="text-lg font-semibold text-blue-600"></div>
+                    </div>
+                    
+                    <div class="distance-grid">
+                        <div class="text-center">
+                            <div class="distance-value" id="moved-distance">0.0 米</div>
+                            <div class="distance-label">已移动距离</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="distance-value" id="target-distance">-- 米</div>
+                            <div class="distance-label">目标距离</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    
+                    <!-- 距离状态指示器 -->
+                    <div class="distance-status-container">
+                        <div id="ten-car-status" class="distance-status">
+                            <div class="distance-status-value">110m</div>
+                            <div class="distance-status-label">十辆</div>
+                        </div>
+                        <div id="five-car-status" class="distance-status">
+                            <div class="distance-status-value">55m</div>
+                            <div class="distance-status-label">五辆</div>
+                        </div>
+                        <div id="three-car-status" class="distance-status">
+                            <div class="distance-status-value">33m</div>
+                            <div class="distance-status-label">三辆</div>
+                        </div>
+                        <div id="stop-status" class="distance-status">
+                            <div class="distance-status-value">10m</div>
+                            <div class="distance-status-label">停车</div>
+                        </div>
+                    </div>
+                    
+                    <div class="distance-log">
+                        <div class="text-center font-medium text-sm mb-2">定位坐标与位移计算</div>
+                        <div id="distance-log-content" class="space-y-1">
+                            <!-- 位移计算日志将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-gray-600">
+                        <p class="text-center"><span class="critical-distance">注意：</span> 接近停车点时请将速度控制在3km/h以下</p>
+                        <p id="accuracy-warning" class="accuracy-warning text-center mt-2 hidden">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>当前定位精度不足10米，无法完成测距！
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 提示信息 -->
+                <div id="alert-box" class="hidden p-4 rounded-lg text-center">
+                    <p id="alert-text" class="text-xl font-bold"></p>
+                </div>
+                
+                <!-- 返回按钮 -->
+                <button id="back-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-bold transition">
+                    <i class="fas fa-undo mr-2"></i>返回重新选择
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 高德地图API密钥数组
+        const apiKeys = [
+            '7e27a498037b5fddc123e231ef441818',
+            '6ac5e942155478de8d704f9230d49b5d',
+            '409e99ed399f7486fc98f1a7f978995a',
+            '4c6812ec865f7fc66cb03fff60ba46d7',
+            'ef7bb5754410c107340d225323bc568d'
+        ];
+        
+        // 全局变量
+        let currentApiIndex = 0;
+        let map = null;
+        let geolocation = null;
+        let currentPositionMarker = null;
+        let accuracyCircle = null;
+        let scaleControl = null;
+        let startPoint = null;
+        let isPositioningActive = false;
+
+        // 股道长度配置（所有长度增加200米）
+        const trackLengths = {
+            '整1': 600, '整2': 600, '整3': 600, '整4': 600, '整5': 600, '整6': 600,
+            '存1': 580, '存2': 580,
+            '动1': 620, '动2': 620, '动3': 620, '动4': 620
+        };
+        
+        // 语音提示阈值（增加200米）
+        const alertThresholds = [
+            { distance: 110, message: "十辆位置", voice: "十辆", id: "ten-car" },
+            { distance: 55, message: "五辆位置", voice: "五辆", id: "five-car" },
+            { distance: 33, message: "三辆位置", voice: "三辆", id: "three-car" },
+            { distance: 10, message: "一度停车", voice: "一度停车", id: "stop" }
+        ];
+        
+        // 全局变量
+        let currentDistance = 0;
+        let targetDistance = 0;
+        let movedDistance = 0;
+        let speechSynthesis = window.speechSynthesis;
+        let alertedDistances = [];
+        let lastPosition = null;
+        let lastAccuracy = null;
+        let lastPositionForDistance = null;
+        let lastPositionTime = null;
+        let isHighAccuracyMode = false;
+        
+        // 位移计算相关变量
+        let basePoint = null;
+        let apiStatusIndicators = [];
+        let resultApiStatusIndicators = [];
+        let lastValidPoint = null;
+        let lastValidPointTime = null;
+        let apiPositioningInterval = null;
+        
+        // Web定位相关变量
+        let watchPositionId = null;
+        let localPositionsCache = [];
+        let lastLocalPosition = null;
+        let lastLocalPositionTime = null;
+        let localDistance = 0;
+        let isWebPositioningActive = false;
+        let isBasePointSet = false; // 标记基准点是否已设置
+
+        // WGS84转GCJ02坐标转换函数
+        function wgs84ToGcj02(lng, lat) {
+            const PI = 3.1415926535897932384626;
+            const a = 6378245.0;
+            const ee = 0.00669342162296594323;
+            
+            if (outOfChina(lng, lat)) {
+                return [lng, lat];
+            }
+            
+            let dLat = transformLat(lng - 105.0, lat - 35.0);
+            let dLng = transformLng(lng - 105.0, lat - 35.0);
+            const radLat = lat / 180.0 * PI;
+            let magic = Math.sin(radLat);
+            magic = 1 - ee * magic * magic;
+            const sqrtMagic = Math.sqrt(magic);
+            dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * PI);
+            dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * PI);
+            const mgLat = lat + dLat;
+            const mgLng = lng + dLng;
+            
+            return [mgLng, mgLat];
+        }
+        
+        function outOfChina(lng, lat) {
+            return (lng < 72.004 || lng > 137.8347) || (lat < 0.8293 || lat > 55.8271);
+        }
+        
+        function transformLat(lng, lat) {
+            let ret = -100.0 + 2.0 * lng + 3.0 * lat + 0.2 * lat * lat + 0.1 * lng * lat + 0.2 * Math.sqrt(Math.abs(lng));
+            ret += (20.0 * Math.sin(6.0 * lng * Math.PI) + 20.0 * Math.sin(2.0 * lng * Math.PI)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(lat * Math.PI) + 40.0 * Math.sin(lat / 3.0 * Math.PI)) * 2.0 / 3.0;
+            ret += (160.0 * Math.sin(lat / 12.0 * Math.PI) + 320 * Math.sin(lat * Math.PI / 30.0)) * 2.0 / 3.0;
+            return ret;
+        }
+        
+        function transformLng(lng, lat) {
+            let ret = 300.0 + lng + 2.0 * lat + 0.1 * lng * lng + 0.1 * lng * lat + 0.1 * Math.sqrt(Math.abs(lng));
+            ret += (20.0 * Math.sin(6.0 * lng * Math.PI) + 20.0 * Math.sin(2.0 * lng * Math.PI)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(lng * Math.PI) + 40.0 * Math.sin(lng / 3.0 * Math.PI)) * 2.0 / 3.0;
+            ret += (150.0 * Math.sin(lng / 12.0 * Math.PI) + 300.0 * Math.sin(lng / 30.0 * Math.PI)) * 2.0 / 3.0;
+            return ret;
+        }
+
+        // 初始化地图
+        function initMap() {
+            // 初始化API状态指示灯
+            apiStatusIndicators = Array.from(document.querySelectorAll('#api-status-selection .api-indicator'));
+            
+            // 创建地图实例
+            map = new AMap.Map('map-container-selection', {
+                zoom: 17,
+                viewMode: '3D',
+                showBuildingBlock: true,
+                center: [114.30, 30.60] // 武汉大致中心坐标
+            });
+            
+            // 添加比例尺控件
+            scaleControl = new AMap.Scale({
+                position: 'LB'
+            });
+            map.addControl(scaleControl);
+            
+            // 初始化定位服务
+            initGeolocation();
+            
+            // 页面加载后自动定位一次
+            setTimeout(() => {
+                document.getElementById('locate-btn-selection').click();
+            }, 1000);
+        }
+
+        // 初始化定位服务
+        function initGeolocation() {
+            // 使用当前API密钥
+            const currentApiKey = apiKeys[currentApiIndex];
+            
+            // 创建新的定位服务
+            geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 3000,
+                showButton: false,
+                zoomToAccuracy: true,
+                useNative: true,
+                GeoLocationFirst: true,
+                showMarker: false,
+                showCircle: false,
+                panToLocation: true,
+                noIpLocate: 1,
+                extensions: 'all',
+                key: currentApiKey
+            });
+            
+            map.addControl(geolocation);
+            isHighAccuracyMode = true;
+        }
+
+        // 开始Web定位（使用浏览器原生API）
+        function startWebPositioning() {
+            if (!navigator.geolocation) {
+                alert("您的浏览器不支持地理定位功能");
+                return;
+            }
+            
+            isWebPositioningActive = true;
+            localPositionsCache = [];
+            localDistance = 0;
+            isBasePointSet = false; // 重置基准点设置状态
+            
+            // 配置定位选项
+            const options = {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            };
+            
+            // 开始监听位置变化
+            watchPositionId = navigator.geolocation.watchPosition(
+                handleWebPositionSuccess,
+                handleWebPositionError,
+                options
+            );
+            
+            // 每5秒发送一次数据到服务器
+            setInterval(sendPositionDataToServer, 5000);
+        }
+
+        // 处理Web定位成功
+        function handleWebPositionSuccess(position) {
+            const coords = position.coords;
+            const timestamp = position.timestamp;
+            
+            // 转换坐标到GCJ02
+            const [lng, lat] = wgs84ToGcj02(coords.longitude, coords.latitude);
+            const accuracy = coords.accuracy;
+            const speed = coords.speed;
+            const heading = coords.heading;
+            
+            // 创建位置对象
+            const positionObj = {
+                lng: lng,
+                lat: lat,
+                accuracy: accuracy,
+                speed: speed,
+                heading: heading,
+                timestamp: timestamp
+            };
+            
+            // 添加到本地缓存
+            localPositionsCache.push(positionObj);
+            
+            // 更新界面显示
+            updatePositionDisplay(positionObj);
+            
+            // 处理位移计算
+            processWebPositionForDistance(positionObj);
+        }
+
+        // 处理Web定位错误
+        function handleWebPositionError(error) {
+            console.error("Web定位错误:", error);
+            const statusElement = document.getElementById('gps-status');
+            statusElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>定位错误: ' + error.message;
+            statusElement.className = 'font-bold text-red-600';
+            
+            // 显示精度警告
+            document.getElementById('accuracy-warning').classList.remove('hidden');
+            
+            // 添加日志
+            addToDistanceLog(`Web定位错误: ${error.message}`);
+        }
+
+        // 更新位置显示
+        function updatePositionDisplay(position) {
+            // 更新地图显示
+            updateMapDisplay({
+                position: new AMap.LngLat(position.lng, position.lat),
+                accuracy: position.accuracy
+            });
+            
+            // 更新状态显示
+            const statusElement = document.getElementById('gps-status');
+            statusElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Web定位成功 - 精度: ' + 
+                (position.accuracy ? position.accuracy.toFixed(0) + '米' : '高精度');
+            statusElement.className = 'font-bold text-green-600';
+            
+            // 更新北斗定位状态
+            updateBeidouStatus(position.accuracy);
+        }
+
+        // 处理Web定位的位移计算
+        function processWebPositionForDistance(position) {
+            const now = Date.now();
+            
+            // 格式化坐标（精确到小数点后三位）
+            const formattedLng = position.lng.toFixed(3);
+            const formattedLat = position.lat.toFixed(3);
+            
+            // 添加日志
+            addToDistanceLog(`<span class="api-coordinates">Web定位: ${formattedLng}, ${formattedLat}</span> 精度: ${position.accuracy.toFixed(1)}米`);
+            
+            // 如果精度大于3米，不设置为基准点
+            if (position.accuracy > 3) {
+                addToDistanceLog(`<span class="accuracy-warning">精度不足3米，舍弃此定位点</span>`);
+                return;
+            }
+            
+            // 如果还没有设置基准点，设置当前点为基准点
+            if (!isBasePointSet) {
+                lastValidPoint = position;
+                lastValidPointTime = now;
+                isBasePointSet = true;
+                addToDistanceLog("<span class='distance-change'>设置初始基准点成功</span>");
+                return;
+            }
+            
+            // 计算时间差（秒）
+            const timeDiff = (now - lastValidPointTime) / 1000;
+            
+            // 计算位移
+            const distanceMoved = calculateDistance(lastValidPoint, position);
+            
+            // 添加日志
+            addToDistanceLog(`<span class="distance-change">移动距离: ${distanceMoved.toFixed(2)}米</span> (时间间隔: ${timeDiff.toFixed(1)}秒)`);
+            
+            // 累加移动距离
+            movedDistance += distanceMoved;
+            document.getElementById('moved-distance').textContent = movedDistance.toFixed(1) + ' 米';
+            
+            // 更新基准点为当前点
+            lastValidPoint = position;
+            lastValidPointTime = now;
+            
+            // 更新距离显示
+            const remainingDistance = Math.max(0, targetDistance - movedDistance);
+            updateDistanceDisplay(remainingDistance);
+            checkAlertThresholds(remainingDistance);
+        }
+
+        // 发送位置数据到服务器
+        function sendPositionDataToServer() {
+            if (localPositionsCache.length === 0) return;
+            
+            // 准备要发送的数据
+            const dataToSend = {
+                positions: localPositionsCache,
+                deviceId: "device_123",
+                timestamp: Date.now()
+            };
+            
+            // 模拟发送到服务器（实际应用中应使用fetch或XMLHttpRequest）
+            console.log("发送位置数据到服务器:", dataToSend);
+            
+            // 清空已发送的缓存
+            localPositionsCache = [];
+        }
+
+        // 开始对标
+        document.getElementById('start-btn').addEventListener('click', function() {
+            const line = document.getElementById('line-select').value;
+            const model = document.getElementById('train-model').value;
+            const track = document.getElementById('track').value;
+            const position = document.querySelector('input[name="position"]:checked')?.value;
+
+            if (!line || !model || !track || !position) {
+                alert('请完成所有选项选择！');
+                return;
+            }
+            
+            // 计算目标距离
+            targetDistance = calculateTargetDistance(model, track, position);
+            
+            // 更新目标距离显示
+            document.getElementById('target-distance').textContent = targetDistance.toFixed(1) + ' 米';
+
+            // 显示结果面板
+            document.getElementById('selection-panel').classList.add('hidden');
+            document.getElementById('result-panel').classList.remove('hidden');
+
+            // 更新显示信息
+            document.getElementById('display-line').textContent = line === 'K1' ? 'K1线' : 'K2线';
+            document.getElementById('display-model').textContent = model;
+            document.getElementById('display-track').textContent = track;
+            document.getElementById('display-position').textContent = position + '侧';
+
+            // 重置移动距离
+            movedDistance = 0;
+            document.getElementById('moved-distance').textContent = '0.0 米';
+            
+            // 重置状态指示器
+            resetStatusIndicators();
+            
+            // 清除历史记录
+            alertedDistances = [];
+            lastPositionForDistance = null;
+            lastPositionTime = null;
+            basePoint = null;
+            lastValidPoint = null;
+            lastValidPointTime = null;
+            isBasePointSet = false;
+            
+            // 清空位移日志
+            document.getElementById('distance-log-content').innerHTML = '';
+            
+            // 隐藏精度警告
+            document.getElementById('accuracy-warning').classList.add('hidden');
+
+            // 开始Web定位
+            startWebPositioning();
+        });
+
+        // 更新API状态指示灯
+        function updateApiStatusIndicators(activeIndex) {
+            apiStatusIndicators.forEach((indicator, index) => {
+                if (index === activeIndex) {
+                    indicator.classList.remove('api-inactive');
+                    indicator.classList.add('api-active');
+                } else {
+                    indicator.classList.remove('api-active');
+                    indicator.classList.add('api-inactive');
+                }
+            });
+        }
+
+        // 重置状态指示器
+        function resetStatusIndicators() {
+            document.getElementById('ten-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('five-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('three-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('stop-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('distance-status').textContent = "";
+        }
+
+        // 返回按钮
+        document.getElementById('back-btn').addEventListener('click', function() {
+            stopPositioning();
+            document.getElementById('result-panel').classList.add('hidden');
+            document.getElementById('selection-panel').classList.remove('hidden');
+            document.getElementById('alert-box').classList.add('hidden');
+            alertedDistances = [];
+            
+            // 清除地图上的标记
+            if (currentPositionMarker) map.remove(currentPositionMarker);
+            if (accuracyCircle) map.remove(accuracyCircle);
+            currentPositionMarker = null;
+            accuracyCircle = null;
+            
+            // 重置位置历史
+            lastPositionForDistance = null;
+            basePoint = null;
+            lastValidPoint = null;
+            lastValidPointTime = null;
+            isBasePointSet = false;
+            
+            // 停止Web定位
+            if (watchPositionId !== null) {
+                navigator.geolocation.clearWatch(watchPositionId);
+                watchPositionId = null;
+            }
+            isWebPositioningActive = false;
+        });
+
+        // 定位函数（统一处理两个页面的定位）
+        function handleLocation(isInitialPanel) {
+            const statusElement = isInitialPanel ? 
+                document.getElementById('initial-gps-status') : 
+                document.getElementById('gps-status');
+
+            // 更新状态
+            statusElement.innerHTML = '<i class="fas fa-sync-alt animate-spin mr-1"></i>定位中...';
+            if (isInitialPanel) {
+                statusElement.className = 'text-sm text-blue-600';
+            } else {
+                statusElement.className = 'font-bold text-yellow-600';
+            }
+
+            // 获取当前位置
+            geolocation.getCurrentPosition((status, result) => {
+                if (status === 'complete') {
+                    // 定位成功
+                    const statusText = isInitialPanel ? 
+                        '<i class="fas fa-check-circle mr-1"></i>定位成功' : 
+                        '<i class="fas fa-check-circle mr-1"></i>北斗定位成功 - 精度: ' + 
+                        (result.accuracy ? result.accuracy.toFixed(0) + '米' : '高精度');
+                    
+                    statusElement.innerHTML = statusText;
+                    statusElement.className = isInitialPanel ? 'text-sm text-green-600' : 'font-bold text-green-600';
+
+                    // 保存位置信息
+                    lastPosition = result.position;
+                    lastAccuracy = result.accuracy;
+                    
+                    // 更新北斗定位状态
+                    updateBeidouStatus(result.accuracy);
+                    
+                    // 更新地图显示
+                    updateMapDisplay(result);
+                } else {
+                    // 定位失败
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>定位失败: ' + (result.message || '未知错误');
+                    statusElement.className = isInitialPanel ? 'text-sm text-red-600' : 'font-bold text-red-600';
+                    
+                    // 在结果面板显示精度警告
+                    if (!isInitialPanel) {
+                        document.getElementById('accuracy-warning').classList.remove('hidden');
+                    }
+                    
+                    // 添加日志
+                    addToDistanceLog(`API${currentApiIndex+1}定位失败`);
+                }
+            });
+        }
+
+        // 添加到位移日志
+        function addToDistanceLog(message) {
+            const logElement = document.getElementById('distance-log-content');
+            const logItem = document.createElement('div');
+            logItem.className = 'distance-log-item';
+            
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            logItem.innerHTML = `[${timeString}] ${message}`;
+            logElement.prepend(logItem);
+            
+            // 限制日志数量
+            if (logElement.children.length > 10) {
+                logElement.removeChild(logElement.lastChild);
+            }
+        }
+
+        // 更新北斗定位状态显示
+        function updateBeidouStatus(accuracy) {
+            const beidouElement = document.getElementById('beidou-status');
+            if (!beidouElement) return;
+            
+            if (accuracy <= 10) {
+                beidouElement.innerHTML = ' | <span class="beidou-high">北斗高精定位</span> <span class="lane-level">车道级</span>';
+            } else if (accuracy <= 15) {
+                beidouElement.innerHTML = ' | <span class="beidou-high">北斗定位</span>';
+            } else {
+                beidouElement.innerHTML = ' | <span class="beidou-low">北斗定位</span>';
+            }
+        }
+
+        // 绑定定位按钮
+        document.getElementById('locate-btn-selection').addEventListener('click', function() {
+            handleLocation(true);
+        });
+
+        // 更新地图显示
+        function updateMapDisplay(result) {
+            const position = result.position;
+            const accuracy = result.accuracy;
+
+            // 更新地图中心
+            map.setCenter(position);
+
+            // 清除旧标记
+            if (currentPositionMarker) map.remove(currentPositionMarker);
+
+            // 添加新标记
+            currentPositionMarker = new AMap.Marker({
+                position: position,
+                content: '<div class="h-8 w-8 bg-blue-500 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white"><i class="fas fa-location-arrow"></i></div>',
+                offset: new AMap.Pixel(-12, -12)
+            });
+            map.add(currentPositionMarker);
+
+            // 添加精度圆
+            if (accuracy) {
+                if (accuracyCircle) map.remove(accuracyCircle);
+
+                accuracyCircle = new AMap.Circle({
+                    center: position,
+                    radius: accuracy,
+                    strokeColor: accuracy <= 10 ? "#10b981" : "#f59e0b",
+                    strokeOpacity: 0.5,
+                    strokeWeight: 1,
+                    fillColor: accuracy <= 10 ? "rgba(16, 185, 129, 0.2)" : "rgba(245, 158, 11, 0.2)",
+                    fillOpacity: 0.2,
+                    zIndex: 10
+                });
+                map.add(accuracyCircle);
+            }
+        }
+
+        // 计算目标距离
+        function calculateTargetDistance(model, track, position) {
+            let distance = trackLengths[track];
+
+            // 东侧为一半距离
+            if (position === '东') {
+                distance = distance / 2;
+            }
+
+            // CRH380AL增加1米
+            if (model === 'CRH380AL') {
+                distance += 1;
+            }
+
+            return distance;
+        }
+        
+        // 计算两点之间的距离（Haversine公式）
+        function calculateDistance(point1, point2) {
+            const R = 6371000; // 地球半径（米）
+            const dLat = toRadians(point2.lat - point1.lat);
+            const dLng = toRadians(point2.lng - point1.lng);
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRadians(point1.lat)) * Math.cos(toRadians(point2.lat)) * 
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        // 角度转弧度
+        function toRadians(degrees) {
+            return degrees * Math.PI / 180;
+        }
+
+        // 停止定位
+        function stopPositioning() {
+            if (apiPositioningInterval) {
+                clearInterval(apiPositioningInterval);
+                apiPositioningInterval = null;
+            }
+            isPositioningActive = false;
+            
+            // 停止Web定位
+            if (watchPositionId !== null) {
+                navigator.geolocation.clearWatch(watchPositionId);
+                watchPositionId = null;
+            }
+            isWebPositioningActive = false;
+        }
+
+        // 更新距离显示
+        function updateDistanceDisplay(distance) {
+            document.getElementById('distance').textContent = distance.toFixed(1) + ' 米';
+            currentDistance = distance;
+
+            // 更新进度条
+            const progress = Math.min(100, (1 - distance / targetDistance) * 100);
+            document.getElementById('progress-bar').style.width = progress + '%';
+
+            // 根据距离改变颜色
+            if (distance <= 210) {
+                document.getElementById('distance').className = 'text-5xl font-bold text-red-600 my-4';
+                document.getElementById('progress-bar').className = 'progress-bar bg-red-500';
+            } else if (distance <= 255) {
+                document.getElementById('distance').className = 'text-5xl font-bold text-yellow-600 my-4';
+                document.getElementById('progress-bar').className = 'progress-bar bg-yellow-500';
+            } else {
+                document.getElementById('distance').className = 'text-5xl font-bold text-blue-600 my-4';
+                document.getElementById('progress-bar').className = 'progress-bar bg-blue-500';
+            }
+        }
+
+        // 检查提示阈值
+        function checkAlertThresholds(distance) {
+            const alertBox = document.getElementById('alert-box');
+            const alertText = document.getElementById('alert-text');
+            const distanceStatus = document.getElementById('distance-status');
+
+            // 更新状态指示器
+            updateStatusIndicators(distance);
+            
+            for (const threshold of alertThresholds) {
+                if (distance <= threshold.distance && !alertedDistances.includes(threshold.distance)) {
+                    // 显示提示
+                    alertBox.classList.remove('hidden');
+                    alertBox.className = 'p-4 rounded-lg text-center alert-animation';
+                    
+                    if (threshold.distance <= 210) {
+                        alertBox.classList.add('bg-red-100', 'text-red-800');
+                        distanceStatus.className = 'text-lg font-semibold text-red-600';
+                    } else if (threshold.distance <= 255) {
+                        alertBox.classList.add('bg-yellow-100', 'text-yellow-800');
+                        distanceStatus.className = 'text-lg font-semibold text-yellow-600';
+                    } else {
+                        alertBox.classList.add('bg-blue-100', 'text-blue-800');
+                        distanceStatus.className = 'text-lg font-semibold text-blue-600';
+                    }
+
+                    alertText.textContent = threshold.message;
+                    distanceStatus.textContent = threshold.message;
+
+                    // 语音提示
+                    if (speechSynthesis) {
+                        const utterance = new SpeechSynthesisUtterance(threshold.voice);
+                        utterance.lang = 'zh-CN';
+                        speechSynthesis.speak(utterance);
+                    }
+
+                    // 记录已提示的距离
+                    alertedDistances.push(threshold.distance);
+                    break;
+                }
+            }
+        }
+        
+        // 更新状态指示器
+        function updateStatusIndicators(distance) {
+            // 重置所有状态
+            document.getElementById('ten-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('five-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('three-car-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            document.getElementById('stop-status').classList.remove('status-active', 'status-warning', 'status-critical');
+            
+            // 根据距离设置状态
+            if (distance <= 110 && distance > 55) {
+                document.getElementById('ten-car-status').classList.add('status-active');
+            } else if (distance <= 55 && distance > 33) {
+                document.getElementById('five-car-status').classList.add('status-warning');
+            } else if (distance <= 33 && distance > 10) {
+                document.getElementById('three-car-status').classList.add('status-warning');
+                document.getElementById('stop-status').classList.add('status-critical');
+            } else if (distance <= 0) {
+                document.getElementById('stop-status').classList.add('status-critical');
+            }
+        }
+
+        // 初始化地图
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载高德地图API
+            const script = document.createElement('script');
+            script.src = 'https://webapi.amap.com/maps?v=2.0&key=7e27a498037b5fddc123e231ef441818&plugin=AMap.Geolocation,AMap.Scale';
+            script.onload = initMap;
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>
